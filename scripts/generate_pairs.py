@@ -2,8 +2,8 @@
 
 For every new sample the teacher writes a small COBOL program, test inputs, an explanation
 and a Java translation. The pair is kept ONLY if the COBOL compiles with GnuCOBOL and the
-Java program prints exactly the same output on every test input. When the Java output
-differs, the teacher gets the diff and up to --repairs chances to fix it.
+Java program prints exactly the same output on every test input. When the COBOL does not
+compile or the Java output differs, the teacher gets the errors and up to --repairs chances to fix them.
 
 Works with any OpenAI-compatible API. Default: Hugging Face Inference Providers
 (set HF_TOKEN). Check the terms of the model/provider you use allow training on its outputs;
@@ -12,7 +12,7 @@ open-weight models like Qwen are the safest choice.
 Usage:
     export HF_TOKEN=hf_...
     python scripts/generate_pairs.py --count 50
-    python scripts/generate_pairs.py --count 50 --model Qwen/Qwen2.5-Coder-32B-Instruct
+    python scripts/generate_pairs.py --count 50 --model Qwen/Qwen2.5-Coder-32B-Instruct  # cheaper, weaker COBOL
     # another provider:
     python scripts/generate_pairs.py --base-url https://api.openai.com/v1 --api-key-env OPENAI_API_KEY --model gpt-4.1
 """
@@ -99,6 +99,14 @@ Fix the Java code so its output matches the COBOL output exactly. Pay attention 
 sizes, padding, zero suppression, sign handling, truncation and ROUNDED.
 Answer only with the corrected code inside <java></java> tags."""
 
+COBOL_REPAIR_PROMPT = """The COBOL program does not compile with `cobc -x -free`:
+
+{errors}
+
+Fix the COBOL program (declare every data item you use, use only syntax GnuCOBOL supports) and
+update the Java translation so it still prints exactly the same output.
+Answer only with the corrected code inside <cobol></cobol> and <java></java> tags."""
+
 
 def parse_tag(text: str, tag: str) -> str | None:
     match = re.search(rf"<{tag}>\s*(.*?)\s*</{tag}>", text, flags=re.DOTALL)
@@ -149,10 +157,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--count", type=int, default=20, help="number of generation attempts")
     parser.add_argument("--out", type=Path, default=Path("data/programs"))
-    parser.add_argument("--model", default="Qwen/Qwen2.5-Coder-32B-Instruct")
+    parser.add_argument("--model", default="Qwen/Qwen3-Coder-480B-A35B-Instruct")
     parser.add_argument("--base-url", default="https://router.huggingface.co/v1")
     parser.add_argument("--api-key-env", default="HF_TOKEN")
-    parser.add_argument("--repairs", type=int, default=2, help="repair attempts when Java output differs")
+    parser.add_argument("--repairs", type=int, default=3, help="repair rounds for COBOL compile errors or Java output diffs")
     parser.add_argument("--temperature", type=float, default=0.8)
     parser.add_argument("--seed", type=int, default=None)
     args = parser.parse_args()
@@ -198,24 +206,26 @@ def main() -> int:
 
         result = check_pair("candidate", sample["cobol"], sample["java"], sample["tests"])
         repairs = 0
-        while not result.ok and result.cobol_compiled and repairs < args.repairs:
+        while not result.ok and repairs < args.repairs:
             if any("COBOL program failed" in e for e in result.errors):
                 break  # the reference itself is broken; repairing Java cannot help
+            prompt, tags = (REPAIR_PROMPT, ("java",)) if result.cobol_compiled else (COBOL_REPAIR_PROMPT, ("cobol", "java"))
             repairs += 1
             messages += [{"role": "assistant", "content": reply},
-                         {"role": "user", "content": REPAIR_PROMPT.format(errors="\n\n".join(result.errors)[:4000])}]
+                         {"role": "user", "content": prompt.format(errors="\n\n".join(result.errors)[:4000])}]
             try:
                 reply = chat(client, args.model, messages, 0.2)
             except Exception as e:
                 print(f"[{attempt}] API error during repair: {e}")
                 break
-            fixed = parse_tag(reply, "java")
-            if fixed is None:
+            fixed = {tag: parse_tag(reply, tag) for tag in tags}
+            if any(v is None for v in fixed.values()):
                 break
-            sample["java"] = fixed
+            sample.update(fixed)
             result = check_pair("candidate", sample["cobol"], sample["java"], sample["tests"])
+        digest = hashlib.sha256((sample["cobol"].strip() + "\n").encode()).hexdigest()
 
-        if result.ok:
+        if result.ok and digest not in hashes:
             name = f"gen_{next_id:04d}"
             save_pair(args.out, name, sample)
             hashes.add(digest)
@@ -223,7 +233,8 @@ def main() -> int:
             kept += 1
             print(f"[{attempt}] KEPT {name} ({topic}; repairs: {repairs})")
         else:
-            reason = "COBOL does not compile" if not result.cobol_compiled else f"tests {result.passed}/{result.total}"
+            reason = ("duplicate program" if result.ok else "COBOL does not compile" if not result.cobol_compiled
+                      else f"tests {result.passed}/{result.total}")
             print(f"[{attempt}] rejected: {reason}")
 
     print(f"\nKept {kept} verified pairs out of {args.count} attempts.")

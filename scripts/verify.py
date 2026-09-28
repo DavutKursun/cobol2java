@@ -58,7 +58,7 @@ def _run(cmd: list[str], stdin: str = "", cwd: Path | None = None, timeout: int 
 
 def compile_cobol(source: str, workdir: Path) -> tuple[Path | None, str]:
     src = workdir / "program.cbl"
-    src.write_text(source)
+    src.write_text(source if source.endswith("\n") else source + "\n")
     exe = workdir / "cobol_prog"
     code, _, err = _run(["cobc", "-x", "-free", "-o", str(exe), str(src)], timeout=COMPILE_TIMEOUT)
     return (exe if code == 0 else None), err
@@ -82,7 +82,7 @@ def check_pair(name: str, cobol_src: str, java_src: str, tests: list[dict]) -> P
         exe, err = compile_cobol(cobol_src, workdir)
         result.cobol_compiled = exe is not None
         if not exe:
-            result.errors.append(f"COBOL compile error: {err.strip()[:500]}")
+            result.errors.append(f"COBOL compile error: {err.strip()[:1500]}")
             return result
 
         class_name, err = compile_java(java_src, workdir)

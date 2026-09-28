@@ -16,6 +16,7 @@ Portfolio project: LoRA fine-tune of Qwen2.5-Coder-1.5B-Instruct that explains C
 - In the user's shell `python3` is aliased to Python 3.9; use `.venv/bin/python` or activate the venv.
 - `space/prompts.py` is a copy of `scripts/prompts.py` (a Space only gets the `space/` folder). Edit both together; CI fails if they differ.
 - The train/test split is a hash of the folder name, so adding programs never moves an old test program into train.
+- Teacher model: Qwen2.5-Coder-32B wrote COBOL that rarely compiled (0/4 on 2026-09-28); Qwen3-Coder-480B compiles far more often, and most rejects are edited-picture formatting (`1,000.00` vs `1000.00`). The HF account is free tier (~$0.10/month inference credit; 480B costs ~$0.005 per call), so bulk generation needs paid credit or another provider.
 - Generated pairs land in `data/programs/gen_NNNN/`; `data/train.jsonl` and `data/test.jsonl` are rebuilt by `scripts/build_dataset.py`.
 
 ## Commands
