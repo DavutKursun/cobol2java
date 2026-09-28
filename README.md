@@ -1,5 +1,7 @@
 # COBOL → Java: a fine-tuned LLM for legacy code migration
 
+[![verify](https://github.com/DavutKursun/cobol2java/actions/workflows/verify.yml/badge.svg)](https://github.com/DavutKursun/cobol2java/actions/workflows/verify.yml) [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+
 A small code LLM, fine-tuned with LoRA, that **explains legacy COBOL programs and translates them into equivalent Java 17 code**. Every training example is **execution-verified**: the COBOL and Java programs are compiled and run on the same inputs, and a pair is kept only if their outputs match exactly.
 
 🤗 **Demo:** [Hugging Face Space](https://huggingface.co/spaces/DavutKursun/cobol2java) · **Model:** [DavutKursun/cobol2java-qwen2.5-coder-1.5b](https://huggingface.co/DavutKursun/cobol2java-qwen2.5-coder-1.5b) · **Dataset:** [DavutKursun/cobol-java-verified](https://huggingface.co/datasets/DavutKursun/cobol-java-verified)
@@ -87,4 +89,4 @@ No proprietary or client code was used; all programs are synthetic.
 
 ## License
 
-Code: Apache-2.0. The model inherits the license of its base model.
+Code: [Apache-2.0](LICENSE). The model inherits the license of its base model.
