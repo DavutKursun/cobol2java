@@ -1,0 +1,1 @@
+The program reads a count N and then N signed decimal amounts, one per line. It prints their sum, their average rounded to 2 decimals, the minimum and the maximum, each with a leading minus sign only when negative. If N is zero it prints "NO DATA" and stops.

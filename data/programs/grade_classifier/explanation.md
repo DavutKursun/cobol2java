@@ -1,0 +1,1 @@
+The program reads a student count, then one "NAME SCORE" line per student. For each student it assigns a letter grade (A ≥ 90, B ≥ 80, C ≥ 70, D ≥ 60, otherwise F) and prints the name padded to 15 characters, the score as three digits with leading zeros, and the grade. Finally it prints the class average rounded to 2 decimals, or "NO STUDENTS" when the count is zero.

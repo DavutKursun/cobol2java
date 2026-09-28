@@ -1,0 +1,1 @@
+The program reads one line of text (up to 80 characters). It prints the text in upper case, the text reversed (after removing leading and trailing spaces), the length of the trimmed text and the number of vowels (A, E, I, O, U, case-insensitive).

@@ -1,0 +1,9 @@
+# data pipeline
+openai>=1.40          # OpenAI-compatible client, used with Hugging Face Inference Providers
+datasets>=4.0
+# training / evaluation (GPU recommended)
+torch
+transformers>=5.0
+peft>=0.17
+trl>=1.0
+accelerate
